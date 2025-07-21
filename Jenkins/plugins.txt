@@ -1,0 +1,35 @@
+# jenkins/plugins.txt
+# This file lists the Jenkins plugins that will be automatically installed
+# when the custom Jenkins Docker image is built.
+# Each line specifies a plugin ID, optionally followed by a colon and version number.
+# If no version is specified, the latest compatible version will be installed.
+
+# Core plugins for pipeline and SCM (Source Code Management)
+git:4.11.5             # Git plugin for SCM integration
+workflow-aggregator:2.6  # Aggregates various pipeline-related plugins
+pipeline-stage-view:2.23 # Provides the stage view for pipelines
+docker-workflow:1.29     # Enables Docker commands in Jenkins pipelines
+credentials:2.13.2       # Manages credentials (e.g., for Git)
+plain-credentials:1.8    # For plain text credentials
+ssh-credentials:1.18.1   # For SSH credentials
+structs:1.24             # Dependency for many pipeline plugins
+workflow-scm-step:2.13   # Enables SCM operations in pipelines
+workflow-cps:2.86        # Groovy CPS (Continuation-Passing Style) for pipelines
+workflow-job:2.40        # Pipeline job type
+workflow-basic-steps:2.23 # Basic steps for pipelines
+workflow-durable-task:1.35 # Durable task plugin for long-running steps
+scm-api:2.6.5            # SCM API plugin
+script-security:1.77     # Script security for pipelines
+
+# Blue Ocean (optional, but provides a modern UI for pipelines)
+blueocean:1.25.5         # Blue Ocean UI
+blueocean-rest:1.25.5
+blueocean-web:1.25.5
+blueocean-pipeline:1.25.5
+blueocean-github-pipeline:1.25.5
+blueocean-bitbucket-pipeline:1.25.5
+blueocean-jira:1.25.5
+blueocean-personalization:1.25.5
+
+# Configuration as Code plugin (essential for jenkins.yaml)
+configuration-as-code:1.56 # Jenkins Configuration as Code plugin

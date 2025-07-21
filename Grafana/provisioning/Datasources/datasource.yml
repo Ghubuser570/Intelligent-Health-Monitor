@@ -1,0 +1,32 @@
+# grafana/provisioning/datasources/datasource.yml
+# This file configures Prometheus as a data source within Grafana.
+# Grafana will automatically load this configuration on startup.
+
+apiVersion: 1 # Specifies the API version for Grafana provisioning
+
+datasources:
+  - name: Prometheus # The name of your data source in Grafana
+    type: prometheus # The type of data source (Prometheus)
+    uid: prometheus_main # A unique identifier for this data source
+    access: proxy # How Grafana accesses the data source (proxy through Grafana server)
+    url: http://prometheus:9090 # The URL of your Prometheus server.
+                                 # 'prometheus' is the service name in docker-compose.yml.
+                                 # 9090 is the default Prometheus port.
+    isDefault: true # Set this data source as the default in Grafana
+    editable: true # Allow editing this data source from the Grafana UI
+    version: 1 # Version of the data source configuration
+    # Optional: Configure basic auth if your Prometheus requires it (not in this setup)
+    # basicAuth: false
+    # basicAuthUser:
+    # basicAuthPassword:
+    # Optional: Configure TLS/SSL (not in this setup)
+    # tlsAuth: false
+    # tlsAuthWithCACert: false
+    # tlsCACert:
+    # tlsClientCert:
+    # tlsClientKey:
+    # secureJsonData:
+    #   tlsClientKey: <your-tls-client-key>
+    # jsonData:
+    #   tlsAuth: false
+    #   tlsAuthWithCACert: false

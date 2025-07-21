@@ -1,0 +1,65 @@
+# prometheus/prometheus.yml
+# This is the main configuration file for Prometheus.
+# It defines global settings and the targets from which Prometheus will scrape metrics.
+
+# Global settings for Prometheus
+global:
+  # How frequently to scrape targets by default
+  scrape_interval: 15s # Scrape every 15 seconds
+  # How long to wait before a scrape request times out
+  scrape_timeout: 10s
+  # How frequently to evaluate rules
+  evaluation_interval: 15s
+
+# Rule files (not used in this simple setup, but good to know)
+# rule_files:
+#   - "first_rules.yml"
+#   - "second_rules.yml"
+
+# A list of scrape configurations.
+# Each 'job_name' represents a set of targets that Prometheus will scrape.
+scrape_configs:
+  # ----------------------------------------------------------------------------------
+  # 1. Prometheus's own metrics
+  #    Prometheus can monitor itself. This is a default job.
+  # ----------------------------------------------------------------------------------
+  - job_name: 'prometheus'
+    # The target for Prometheus's own metrics is localhost:9090 (where Prometheus runs)
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ----------------------------------------------------------------------------------
+  # 2. Building Health Monitor Application Metrics
+  #    This job scrapes metrics from your Flask application.
+  # ----------------------------------------------------------------------------------
+  - job_name: 'building_health_app'
+    # Relabeling is used here to dynamically discover the 'app' service within the Docker network.
+    # This is important because 'app' is a service name in Docker Compose, not 'localhost'.
+    # The 'metrics_path' is where your Flask app exposes Prometheus metrics (configured in app.py).
+    metrics_path: /metrics
+    static_configs:
+      # 'app' is the service name defined in docker-compose.yml.
+      # Prometheus will resolve 'app' to the IP address of the 'app' container within the Docker network.
+      # 5000 is the port the Flask app exposes its metrics on.
+      - targets: ['app:5000']
+
+  # ----------------------------------------------------------------------------------
+  # 3. Jenkins Metrics (Optional, but good for monitoring CI/CD)
+  #    This job scrapes metrics from the Jenkins master.
+  #    Jenkins exposes metrics at /prometheus.
+  # ----------------------------------------------------------------------------------
+  - job_name: 'jenkins'
+    metrics_path: /prometheus
+    static_configs:
+      # 'jenkins_master' is the service name defined in docker-compose.yml.
+      # 8080 is the port Jenkins runs on.
+      - targets: ['jenkins_master:8080']
+
+  # ----------------------------------------------------------------------------------
+  # 4. Node Exporter (Optional: for host-level metrics like CPU, memory, disk)
+  #    This would be a separate Docker container running the Node Exporter.
+  #    Not included in this project for simplicity, but common in real setups.
+  # ----------------------------------------------------------------------------------
+  # - job_name: 'node_exporter'
+  #   static_configs:
+  #     - targets: ['node_exporter:9100'] # Assuming a 'node_exporter' service in docker-compose
