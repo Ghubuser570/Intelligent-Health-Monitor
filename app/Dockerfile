@@ -14,19 +14,18 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install any needed packages specified in requirements.txt
-# --no-cache-dir: Prevents pip from storing downloaded packages, reducing image size.
-# -r: Install from the specified requirements file.
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code into the container
-# This copies app.py, data_simulator.py, model_trainer.py, etc.
+# --- IMPORTANT CHANGE: Copy all application code first ---
+# This ensures model_trainer.py and app.py are available BEFORE we try to run them.
 COPY . .
+
+# --- Now, train ML model during image build ---
+# This ensures the model.pkl is available when the app starts.
+RUN python model_trainer.py
 
 # Expose port 5000, which the Flask application will listen on
 EXPOSE 5000
 
 # Command to run the Flask application when the container starts
-# Gunicorn is a production-ready WSGI HTTP server.
-# -b 0.0.0.0:5000: Binds the server to all network interfaces on port 5000.
-# app:app: Specifies the Flask application instance (app object in app.py).
 CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app"]

@@ -314,7 +314,7 @@ def receive_sensor_data():
 
     # Perform anomaly detection
     is_anomaly, status_message = detect_anomaly(data)
-    data['is_anomaly'] = is_anomaly
+    data['is_anomaly'] = bool(is_anomaly) # Convert numpy.bool_ to standard Python bool
     data['status'] = status_message
 
     # Store the data point

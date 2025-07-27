@@ -2,7 +2,8 @@
 # This file lists all the Python packages required by the Flask application,
 # the ML model (scikit-learn), and the data simulation script.
 
-Flask==2.2.2             # Web framework for the application
+Flask==2.2.2 
+Werkzeug==2.2.2            # Web framework for the application
 gunicorn==20.1.0         # WSGI HTTP Server for production deployment of Flask app
 scikit-learn==1.2.2      # Machine Learning library for the Isolation Forest model
 pandas==1.5.3            # Data manipulation and analysis (used for data handling)

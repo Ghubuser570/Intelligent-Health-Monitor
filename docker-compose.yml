@@ -98,10 +98,12 @@ services:
     ports:
       - "3000:3000" # Grafana web UI
     volumes:
-      # Mounts provisioning files for datasources and dashboards
-      - ./grafana/provisioning/:/etc/grafana/provisioning/
+      # Mounts provisioning files for datasources
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      # Mounts provisioning files for dashboards
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
       # Mounts the actual dashboard JSON file
-      - ./grafana/dashboards/:/var/lib/grafana/dashboards/
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
     environment:
       # Environment variables for Grafana
       GF_SECURITY_ADMIN_USER: admin # Default admin username
