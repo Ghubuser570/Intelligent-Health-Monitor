@@ -1,56 +1,17 @@
-# jenkins/jenkins.yaml
-# This file uses Jenkins Configuration as Code (JCasC) to automatically configure Jenkins.
-# It sets up security, installs necessary plugins, and defines the CI/CD pipeline job.
-
 jenkins:
-  # --- Jenkins Security Configuration ---
-  # Disables the setup wizard and sets up a basic security realm.
-  # In a real production environment, you would use more robust security.
   securityRealm:
     local:
       allowsSignup: false
       users:
         - id: admin
-          password: admin # IMPORTANT: Change this password immediately after first login!
+          password: admin
   authorizationStrategy:
     loggedInUsersCanDoAnything:
       allowAnonymousRead: false
-
-  # --- Jenkins System Configuration ---
-  # Configure system message, etc.
   systemMessage: |
     Welcome to the Building Health Monitor Jenkins!
     This instance is configured via Jenkins Configuration as Code.
-
-  # --- Jenkins Plugins ---
-  # Ensures these plugins are installed when Jenkins starts.
-  # The actual list of plugins is in plugins.txt, which is copied by the Dockerfile.
-  # This section just tells JCasC to apply the plugin list.
-  # (Note: JCasC itself doesn't install plugins, the Dockerfile's COPY plugins.txt does.
-  # This section is more for other JCasC configurations that might depend on plugins.)
-
-  # --- Jenkins Jobs Configuration ---
-  # Defines the CI/CD pipeline job for the Building Health Monitor application.
   jobs:
     - file: /usr/share/jenkins/ref/jobs/building-health-monitor-pipeline.groovy
       id: building-health-monitor-pipeline
       description: "CI/CD pipeline for the Building Health Monitor application."
-
-# --- Agent Configuration (if using separate agents, not strictly needed for this local setup) ---
-# This project uses the Jenkins master to execute builds, simplifying the setup.
-# If you were to scale, you would define agents here.
-# agents:
-#   - name: docker-agent
-#     remoteFs: /home/jenkins/agent
-#     labels: docker
-#     usage: NORMAL
-#     launcher:
-#       ssh:
-#         host: your-docker-host-ip
-#         credentialsId: your-ssh-credential-id
-
-# --- Global Node Properties (if needed) ---
-# nodeProperties:
-#   - envVars:
-#       - key: DOCKER_HOST
-#         value: "unix:///var/run/docker.sock"
