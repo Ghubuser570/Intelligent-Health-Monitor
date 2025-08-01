@@ -1,17 +1,11 @@
-# grafana/provisioning/dashboards/dashboard.yml
-# This file tells Grafana where to find and load your custom dashboards.
-# It ensures that the 'Building Health Dashboard' is automatically available.
-
-apiVersion: 1 # Specifies the API version for Grafana provisioning
+apiVersion: 1
 
 dashboards:
-  - name: Building Health Monitor Dashboards # A logical name for this set of dashboards
-    orgId: 1 # The ID of the organization in Grafana (1 is the default)
-    folder: '' # The folder where dashboards will be placed. Empty string means root folder.
-    type: file # Specifies that dashboards are loaded from files
-    disableDelete: false # Allow dashboards to be deleted via the UI
-    updateIntervalSeconds: 10 # How often Grafana checks for updates to the dashboard files
+  - name: Building Health Monitor Dashboards
+    orgId: 1
+    folder: ''
+    type: file
+    disableDelete: false
+    updateIntervalSeconds: 10
     options:
-      # Path to the directory containing your dashboard JSON files.
-      # This path is relative to Grafana's data directory inside its container.
       path: /var/lib/grafana/dashboards
