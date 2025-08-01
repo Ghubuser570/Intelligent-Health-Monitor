@@ -1,9 +1,3 @@
-# app/app.py
-# This is the main Flask application for the Building Health Monitor.
-# It serves as an API endpoint for receiving sensor data, performs anomaly detection
-# using a pre-trained ML model, and exposes Prometheus metrics.
-# It also provides a simple web interface to display the current status and anomalies.
-
 from flask import Flask, request, jsonify, render_template_string
 import pandas as pd
 import numpy as np
@@ -14,53 +8,38 @@ import time
 from prometheus_client import generate_latest, Counter, Gauge, Histogram, make_wsgi_app
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
-# --- Flask Application Setup ---
 app = Flask(__name__)
 
-# --- Global Variables and Constants ---
-# Path to the trained ML model inside the container.
 MODEL_PATH = 'model.pkl'
 
-# --- Prometheus Metrics Setup ---
-# Counter for total data points received
 DATA_POINTS_RECEIVED = Counter(
     'data_points_received_total',
     'Total number of data points received by the application'
 )
 
-# Counter for total anomalies detected
 ANOMALIES_DETECTED = Counter(
     'anomalies_detected_total',
     'Total number of anomalies detected'
 )
 
-# Gauge for the current number of active anomalies
 ACTIVE_ANOMALIES = Gauge(
     'active_anomalies',
     'Current number of active anomalies being reported'
 )
 
-# Histogram for request duration
 REQUEST_DURATION_SECONDS = Histogram(
     'http_request_duration_seconds',
     'Duration of HTTP requests in seconds',
     ['method', 'endpoint']
 )
 
-# --- In-memory Data Storage ---
-# Store the last N data points for display and anomaly detection
 MAX_DATA_POINTS = 100
-current_data = [] # Stores recent sensor data
-anomalies = []    # Stores detected anomalies
+current_data = [] 
+anomalies = []    
 
-# --- Machine Learning Model Loading ---
-model = None # Global variable to hold the loaded ML model
+model = None 
 
 def load_model():
-    """
-    Loads the pre-trained Isolation Forest model from disk.
-    If the model file does not exist, it prints an error and returns None.
-    """
     global model
     if os.path.exists(MODEL_PATH):
         try:
@@ -74,36 +53,20 @@ def load_model():
         print(f"ML model not found at {MODEL_PATH}. Please run model_trainer.py first.")
         model = None
 
-# Load the model when the application starts
 load_model()
 
-# --- Anomaly Detection Logic ---
 def detect_anomaly(data_point):
-    """
-    Performs anomaly detection on a single data point using the loaded ML model.
-    The Isolation Forest model returns -1 for anomalies and 1 for normal points.
-    """
     if model is None:
-        # This condition should no longer be met, but it's good practice to keep
         return False, "Model not loaded"
 
-    # Convert the data point to a DataFrame suitable for the model
-    # Ensure the order of features matches the training data
     df = pd.DataFrame([data_point], columns=['temperature', 'humidity', 'pressure', 'vibration'])
     
-    # We will now wrap this in a try/except inside the route for better error handling
     prediction = model.predict(df)
     is_anomaly = bool(prediction[0] == -1)
     return is_anomaly, "Detected" if is_anomaly else "Normal"
 
-# --- Flask Routes ---
-
 @app.route('/')
 def index():
-    """
-    Renders the main web page displaying current data and detected anomalies.
-    """
-    # Simple HTML template for the UI
     html_template = """
     <!DOCTYPE html>
     <html lang="en">
@@ -156,7 +119,6 @@ def index():
                 <div class="bg-blue-50 p-6 rounded-lg shadow-md">
                     <h2 class="text-xl font-semibold mb-4 text-blue-700">Real-time Data Stream</h2>
                     <div id="data-stream" class="space-y-3 text-sm">
-                        <!-- Data points will be inserted here by JavaScript -->
                         <p class="text-gray-500">Waiting for data...</p>
                     </div>
                 </div>
@@ -164,7 +126,6 @@ def index():
                 <div class="bg-red-50 p-6 rounded-lg shadow-md">
                     <h2 class="text-xl font-semibold mb-4 text-red-700">Detected Anomalies</h2>
                     <div id="anomaly-list" class="space-y-3">
-                        <!-- Anomalies will be inserted here by JavaScript -->
                         <p class="text-gray-500">No anomalies detected yet.</p>
                     </div>
                 </div>
@@ -185,7 +146,6 @@ def index():
                             </tr>
                         </thead>
                         <tbody id="data-history-table-body">
-                            <!-- Data history will be inserted here by JavaScript -->
                         </tbody>
                     </table>
                 </div>
@@ -193,7 +153,6 @@ def index():
         </div>
 
         <script>
-            // JavaScript to fetch data and update the UI in real-time
             const dataStreamDiv = document.getElementById('data-stream');
             const anomalyListDiv = document.getElementById('anomaly-list');
             const dataHistoryTableBody = document.getElementById('data-history-table-body');
@@ -203,8 +162,7 @@ def index():
                     const response = await fetch('/data');
                     const result = await response.json();
 
-                    // Update real-time data stream
-                    dataStreamDiv.innerHTML = ''; // Clear previous data
+                    dataStreamDiv.innerHTML = ''; 
                     if (result.recent_data.length > 0) {
                         const latest = result.recent_data[result.recent_data.length - 1];
                         const statusClass = latest.is_anomaly ? 'text-red-600 font-bold' : 'text-green-600';
@@ -220,8 +178,7 @@ def index():
                         dataStreamDiv.innerHTML = '<p class="text-gray-500">Waiting for data...</p>';
                     }
 
-                    // Update anomalies list
-                    anomalyListDiv.innerHTML = ''; // Clear previous anomalies
+                    anomalyListDiv.innerHTML = ''; 
                     if (result.anomalies.length > 0) {
                         result.anomalies.forEach(anomaly => {
                             const anomalyCard = `
@@ -237,9 +194,8 @@ def index():
                         anomalyListDiv.innerHTML = '<p class="text-gray-500">No anomalies detected yet.</p>';
                     }
 
-                    // Update data history table
-                    dataHistoryTableBody.innerHTML = ''; // Clear previous history
-                    result.recent_data.slice().reverse().forEach(data => { // Reverse to show latest at top
+                    dataHistoryTableBody.innerHTML = ''; 
+                    result.recent_data.slice().reverse().forEach(data => { 
                         const rowClass = data.is_anomaly ? 'anomaly-card' : 'normal-card';
                         const statusTextClass = data.is_anomaly ? 'text-red-600 font-bold' : 'text-green-600';
                         const row = `
@@ -262,9 +218,7 @@ def index():
                 }
             }
 
-            // Fetch data every 2 seconds
             setInterval(fetchData, 2000);
-            // Initial fetch
             fetchData();
         </script>
     </body>
@@ -275,10 +229,6 @@ def index():
 @app.route('/data', methods=['GET'])
 @REQUEST_DURATION_SECONDS.labels(method='GET', endpoint='/data').time()
 def get_data():
-    """
-    API endpoint to retrieve the current data and anomalies for the UI.
-    """
-    # Return a copy to avoid modification issues during iteration
     return jsonify({
         'recent_data': current_data,
         'anomalies': anomalies
@@ -287,65 +237,45 @@ def get_data():
 @app.route('/sensor_data', methods=['POST'])
 @REQUEST_DURATION_SECONDS.labels(method='POST', endpoint='/sensor_data').time()
 def receive_sensor_data():
-    """
-    API endpoint for receiving sensor data from the data simulator.
-    Performs anomaly detection and updates in-memory storage.
-    """
-    DATA_POINTS_RECEIVED.inc() # Increment Prometheus counter
+    DATA_POINTS_RECEIVED.inc() 
 
     data = request.json
     if not data:
         return jsonify({"status": "error", "message": "No JSON data received"}), 400
 
     try:
-        # Ensure required fields are present
         required_fields = ['temperature', 'humidity', 'pressure', 'vibration']
         if not all(field in data for field in required_fields):
             return jsonify({"status": "error", "message": "Missing required sensor data fields"}), 400
 
-        # Add timestamp to the data point
-        data['timestamp'] = time.time() * 1000 # Milliseconds for JavaScript Date object
+        data['timestamp'] = time.time() * 1000 
 
-        # Perform anomaly detection
         is_anomaly, status_message = detect_anomaly(data)
         data['is_anomaly'] = is_anomaly
         data['status'] = status_message
 
-        # Store the data point
         current_data.append(data)
         if len(current_data) > MAX_DATA_POINTS:
-            current_data.pop(0) # Keep only the latest N data points
+            current_data.pop(0) 
 
-        # If anomaly, add to anomalies list and increment counter
         if is_anomaly:
             anomalies.append(data)
             ANOMALIES_DETECTED.inc()
             print(f"ANOMALY DETECTED: {data}")
         
-        # Update active anomalies gauge
         ACTIVE_ANOMALIES.set(len(anomalies))
 
         return jsonify({"status": "success", "message": "Data received and processed", "is_anomaly": is_anomaly})
 
     except Exception as e:
-        # Catch any other exception and return a 500 with a descriptive message
-        # This will help us find the root cause of the crash.
         print(f"An unhandled exception occurred in /sensor_data: {e}")
         return jsonify({"status": "error", "message": f"Internal Server Error: {e}"}), 500
 
-# --- Prometheus Metrics Endpoint ---
-# Expose Prometheus metrics at /metrics
-# This uses DispatcherMiddleware to serve Prometheus metrics alongside the Flask app.
-# The `make_wsgi_app()` function creates a WSGI app that serves the metrics.
 app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {
     '/metrics': make_wsgi_app()
 })
 
-# --- Main Execution Block ---
 if __name__ == '__main__':
-    # When running directly (e.g., for local testing without Docker Compose),
-    # ensure the model is loaded. In Docker, this is handled when the container starts.
     if model is None:
         load_model()
-    # Run the Flask app in debug mode (not recommended for production)
     app.run(host='0.0.0.0', port=5000, debug=True)
