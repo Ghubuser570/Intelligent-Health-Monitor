@@ -1,128 +1,73 @@
-# docker-compose.yml
-# This file defines and orchestrates all the services for the Building Health Monitor project.
-# It allows you to run the entire system with a single command: docker compose up -d
-
-version: '3.8' # Specifies the Docker Compose file format version
+version: '3.8'
 
 services:
-  # ----------------------------------------------------------------------------------
-  # 1. Building Health Monitor Application (Flask App with ML Model)
-  #    This service runs your Python Flask application, which simulates data ingestion,
-  #    performs anomaly detection, and exposes metrics for Prometheus.
-  # ----------------------------------------------------------------------------------
   app:
-    build: # Specifies that Docker Compose should build the image from a Dockerfile
-      context: ./app # The build context is the 'app' directory
-      dockerfile: Dockerfile # The Dockerfile to use is 'app/Dockerfile'
-    container_name: building-health-monitor-app-1 # A friendly name for the container
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: building-health-monitor-app-1
     ports:
-      - "5000:5000" # Maps port 5000 on your host to port 5000 inside the container
-    # The volumes block has been removed to prevent the model.pkl file,
-    # which is created during the image build, from being overwritten.
+      - "5000:5000"
     environment:
-      # Environment variables for the Flask app (if any are needed in the future)
       FLASK_APP: app.py
-      FLASK_ENV: development # Set to development for easier debugging
+      FLASK_ENV: development
     networks:
-      - health_monitor_network # Connects this service to our custom network
+      - health_monitor_network
     depends_on:
-      # Ensures that Prometheus and Grafana are at least started before the app,
-      # though the app can start before they are fully ready to receive data.
       - prometheus
       - grafana
-
-  # ----------------------------------------------------------------------------------
-  # 2. Jenkins Automation Server
-  #    This service runs Jenkins, which will automate building, testing, and deploying
-  #    your application based on changes in your code.
-  # ----------------------------------------------------------------------------------
   jenkins_master:
     build:
-      context: ./jenkins # Build context is the 'jenkins' directory
-      dockerfile: Dockerfile # The Dockerfile to use is 'jenkins/Dockerfile'
-    container_name: jenkins_master # Friendly name for the Jenkins container
-    privileged: true # Required for Jenkins to interact with Docker daemon (e.g., build images)
-    user: root # Runs Jenkins as root to avoid permission issues with Docker socket
+      context: ./jenkins
+      dockerfile: Dockerfile
+    container_name: jenkins_master
+    privileged: true
+    user: root
     ports:
-      - "8080:8080" # Jenkins web UI
-      - "50000:50000" # Jenkins agent communication port
+      - "8080:8080"
+      - "50000:50000"
     volumes:
-      # Mounts a named volume for Jenkins data persistence.
-      # This ensures that Jenkins configurations, jobs, and plugins are saved
-      # even if the container is removed.
       - jenkins_data:/var/jenkins_home
-      # Mounts the Docker socket from the host into the Jenkins container.
-      # This allows Jenkins (running inside its container) to interact with
-      # the Docker daemon on your host machine to build and run other containers.
       - /var/run/docker.sock:/var/run/docker.sock
-      # Mounts the entire project directory into Jenkins.
-      # This allows Jenkins to access your 'app' directory for building and deploying.
       - ./building-health-monitor:/building-health-monitor
     environment:
-      # Environment variables for Jenkins
-      JENKINS_OPTS: "--argumentsRealm.passwd.admin=admin --argumentsRealm.roles.admin=admin" # Sets initial admin password (change after first login!)
-      JAVA_OPTS: "-Djenkins.install.runSetupWizard=false" # Skips the setup wizard for automated setup
+      JENKINS_OPTS: "--argumentsRealm.passwd.admin=admin --argumentsRealm.roles.admin=admin"
+      JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"
     networks:
-      - health_monitor_network # Connects Jenkins to our custom network
-
-  # ----------------------------------------------------------------------------------
-  # 3. Prometheus Monitoring System
-  #    This service collects metrics from the 'app' and other services.
-  # ----------------------------------------------------------------------------------
+      - health_monitor_network
   prometheus:
-    image: prom/prometheus:latest # Uses the official Prometheus Docker image
-    container_name: prometheus # Friendly name
+    image: prom/prometheus:latest
+    container_name: prometheus
     ports:
-      - "9090:9090" # Prometheus web UI
+      - "9090:9090"
     volumes:
-      # Mounts the Prometheus configuration file into the container
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     command:
-      # Tells Prometheus to use the mounted configuration file
       - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus' # Path for Prometheus data storage
+      - '--storage.tsdb.path=/prometheus'
     networks:
-      - health_monitor_network # Connects Prometheus to our custom network
-
-  # ----------------------------------------------------------------------------------
-  # 4. Grafana Visualization Dashboard
-  #    This service provides dashboards to visualize the metrics collected by Prometheus.
-  # ----------------------------------------------------------------------------------
+      - health_monitor_network
   grafana:
-    image: grafana/grafana:latest # Uses the official Grafana Docker image
-    container_name: grafana # Friendly name
+    image: grafana/grafana:latest
+    container_name: grafana
     ports:
-      - "3000:3000" # Grafana web UI
+      - "3000:3000"
     volumes:
-      # Mounts provisioning files for datasources
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
-      # Mounts provisioning files for dashboards
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
-      # Mounts the actual dashboard JSON file
       - ./grafana/dashboards:/var/lib/grafana/dashboards
     environment:
-      # Environment variables for Grafana
-      GF_SECURITY_ADMIN_USER: admin # Default admin username
-      GF_SECURITY_ADMIN_PASSWORD: admin # Default admin password (change after first login!)
-      GF_USERS_ALLOW_SIGN_UP: "false" # Disables user sign-up
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
     networks:
-      - health_monitor_network # Connects Grafana to our custom network
+      - health_monitor_network
     depends_on:
-      - prometheus # Grafana needs Prometheus to be running to get data
+      - prometheus
 
-# ----------------------------------------------------------------------------------
-# Docker Networks
-# Defines a custom bridge network for all services to communicate with each other.
-# This provides isolation and easier service discovery by name.
-# ----------------------------------------------------------------------------------
 networks:
   health_monitor_network:
     driver: bridge
 
-# ----------------------------------------------------------------------------------
-# Docker Volumes
-# Defines named volumes for persistent data storage.
-# Data stored in these volumes persists even if containers are removed.
-# ----------------------------------------------------------------------------------
 volumes:
-  jenkins_data: # Volume for Jenkins home directory
+  jenkins_data:
