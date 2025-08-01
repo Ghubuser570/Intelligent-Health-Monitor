@@ -10,9 +10,9 @@ import json
 
 # --- Configuration ---
 # The URL of your Flask application's sensor data endpoint.
-# 'app' is the service name defined in docker-compose.yml, which resolves to the container's IP.
-# 5000 is the port the Flask app is listening on.
-FLASK_APP_URL = "http://app:5000/sensor_data"
+# When running from the host machine, we use 'localhost' since port 5000 is
+# mapped to the host.
+FLASK_APP_URL = "http://localhost:5000/sensor_data"
 # Interval between sending data points (in seconds)
 SEND_INTERVAL_SECONDS = 1
 # Probability of generating an anomaly (e.g., 0.1 means 10% chance)
@@ -20,18 +20,18 @@ ANOMALY_PROBABILITY = 0.15 # Increased slightly to demonstrate anomalies more of
 
 # --- Normal Data Ranges (for simulation) ---
 NORMAL_RANGES = {
-    'temperature': {'min': 20.0, 'max': 25.0, 'std_dev': 1.0}, # Celsius
-    'humidity': {'min': 40.0, 'max': 60.0, 'std_dev': 5.0},   # Percentage
+    'temperature': {'min': 20.0, 'max': 25.0, 'std_dev': 1.0},  # Celsius
+    'humidity': {'min': 40.0, 'max': 60.0, 'std_dev': 5.0},    # Percentage
     'pressure': {'min': 1000.0, 'max': 1015.0, 'std_dev': 2.0}, # hPa
-    'vibration': {'min': 0.5, 'max': 2.0, 'std_dev': 0.3}     # Hz
+    'vibration': {'min': 0.5, 'max': 2.0, 'std_dev': 0.3}      # Hz
 }
 
 # --- Anomaly Data Ranges (for simulation) ---
 ANOMALY_RANGES = {
-    'temperature': {'min': 30.0, 'max': 40.0, 'std_dev': 3.0}, # High temperature spike
-    'humidity': {'min': 80.0, 'max': 95.0, 'std_dev': 5.0},   # Very high humidity
-    'pressure': {'min': 980.0, 'max': 990.0, 'std_dev': 3.0}, # Sudden pressure drop
-    'vibration': {'min': 5.0, 'max': 10.0, 'std_dev': 2.0}    # High vibration (e.g., failing machinery)
+    'temperature': {'min': 30.0, 'max': 40.0, 'std_dev': 3.0},  # High temperature spike
+    'humidity': {'min': 80.0, 'max': 95.0, 'std_dev': 5.0},    # Very high humidity
+    'pressure': {'min': 980.0, 'max': 990.0, 'std_dev': 3.0},  # Sudden pressure drop
+    'vibration': {'min': 5.0, 'max': 10.0, 'std_dev': 2.0}      # High vibration (e.g., failing machinery)
 }
 
 def generate_sensor_data(is_anomaly=False):
