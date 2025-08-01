@@ -7,8 +7,8 @@ version: '3.8' # Specifies the Docker Compose file format version
 services:
   # ----------------------------------------------------------------------------------
   # 1. Building Health Monitor Application (Flask App with ML Model)
-  #    This service runs your Python Flask application, which simulates data ingestion,
-  #    performs anomaly detection, and exposes metrics for Prometheus.
+  #    This service runs your Python Flask application, which simulates data ingestion,
+  #    performs anomaly detection, and exposes metrics for Prometheus.
   # ----------------------------------------------------------------------------------
   app:
     build: # Specifies that Docker Compose should build the image from a Dockerfile
@@ -17,12 +17,8 @@ services:
     container_name: building-health-monitor-app-1 # A friendly name for the container
     ports:
       - "5000:5000" # Maps port 5000 on your host to port 5000 inside the container
-    volumes:
-      # Mounts the local 'app' directory into the container.
-      # This is crucial for development: changes to your Python code will be reflected
-      # inside the container without needing to rebuild the image (though a restart
-      # of the 'app' service might be needed for code changes to take effect).
-      - ./app:/app
+    # The volumes block has been removed to prevent the model.pkl file,
+    # which is created during the image build, from being overwritten.
     environment:
       # Environment variables for the Flask app (if any are needed in the future)
       FLASK_APP: app.py
@@ -37,8 +33,8 @@ services:
 
   # ----------------------------------------------------------------------------------
   # 2. Jenkins Automation Server
-  #    This service runs Jenkins, which will automate building, testing, and deploying
-  #    your application based on changes in your code.
+  #    This service runs Jenkins, which will automate building, testing, and deploying
+  #    your application based on changes in your code.
   # ----------------------------------------------------------------------------------
   jenkins_master:
     build:
@@ -71,7 +67,7 @@ services:
 
   # ----------------------------------------------------------------------------------
   # 3. Prometheus Monitoring System
-  #    This service collects metrics from the 'app' and other services.
+  #    This service collects metrics from the 'app' and other services.
   # ----------------------------------------------------------------------------------
   prometheus:
     image: prom/prometheus:latest # Uses the official Prometheus Docker image
@@ -90,7 +86,7 @@ services:
 
   # ----------------------------------------------------------------------------------
   # 4. Grafana Visualization Dashboard
-  #    This service provides dashboards to visualize the metrics collected by Prometheus.
+  #    This service provides dashboards to visualize the metrics collected by Prometheus.
   # ----------------------------------------------------------------------------------
   grafana:
     image: grafana/grafana:latest # Uses the official Grafana Docker image
