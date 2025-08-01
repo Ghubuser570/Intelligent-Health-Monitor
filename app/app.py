@@ -18,11 +18,8 @@ from werkzeug.middleware.dispatcher import DispatcherMiddleware
 app = Flask(__name__)
 
 # --- Global Variables and Constants ---
-# Path to the trained ML model. The model_trainer.py script will save it here.
+# Path to the trained ML model inside the container.
 MODEL_PATH = 'model.pkl'
-# Path for the initial training data. This is a placeholder; in a real scenario,
-# data would come from a database or stream.
-INITIAL_TRAINING_DATA_PATH = 'initial_training_data.csv' # Placeholder, not used directly in this app.py for loading, but conceptually for model_trainer.py
 
 # --- Prometheus Metrics Setup ---
 # Counter for total data points received
@@ -87,21 +84,17 @@ def detect_anomaly(data_point):
     The Isolation Forest model returns -1 for anomalies and 1 for normal points.
     """
     if model is None:
-        print("ML model not loaded, skipping anomaly detection.")
+        # This condition should no longer be met, but it's good practice to keep
         return False, "Model not loaded"
 
     # Convert the data point to a DataFrame suitable for the model
     # Ensure the order of features matches the training data
     df = pd.DataFrame([data_point], columns=['temperature', 'humidity', 'pressure', 'vibration'])
     
-    try:
-        # Predict the anomaly score (-1 for anomaly, 1 for normal)
-        prediction = model.predict(df)
-        is_anomaly = (prediction[0] == -1)
-        return is_anomaly, "Detected" if is_anomaly else "Normal"
-    except Exception as e:
-        print(f"Error during anomaly prediction: {e}")
-        return False, f"Prediction error: {e}"
+    # We will now wrap this in a try/except inside the route for better error handling
+    prediction = model.predict(df)
+    is_anomaly = bool(prediction[0] == -1)
+    return is_anomaly, "Detected" if is_anomaly else "Normal"
 
 # --- Flask Routes ---
 
@@ -256,7 +249,7 @@ def index():
                                 <td>${data.humidity.toFixed(2)}</td>
                                 <td>${data.pressure.toFixed(2)}</td>
                                 <td>${data.vibration.toFixed(2)}</td>
-                                <td><span class="${statusTextClass}">${data.status}</span></td>
+                                <td><td><span class="${statusTextClass}">${data.status}</span></td></td>
                             </tr>
                         `;
                         dataHistoryTableBody.innerHTML += row;
@@ -304,38 +297,41 @@ def receive_sensor_data():
     if not data:
         return jsonify({"status": "error", "message": "No JSON data received"}), 400
 
-    # Ensure required fields are present
-    required_fields = ['temperature', 'humidity', 'pressure', 'vibration']
-    if not all(field in data for field in required_fields):
-        return jsonify({"status": "error", "message": "Missing required sensor data fields"}), 400
+    try:
+        # Ensure required fields are present
+        required_fields = ['temperature', 'humidity', 'pressure', 'vibration']
+        if not all(field in data for field in required_fields):
+            return jsonify({"status": "error", "message": "Missing required sensor data fields"}), 400
 
-    # Add timestamp to the data point
-    data['timestamp'] = time.time() * 1000 # Milliseconds for JavaScript Date object
+        # Add timestamp to the data point
+        data['timestamp'] = time.time() * 1000 # Milliseconds for JavaScript Date object
 
-    # Perform anomaly detection
-    is_anomaly, status_message = detect_anomaly(data)
-    data['is_anomaly'] = bool(is_anomaly) # Convert numpy.bool_ to standard Python bool
-    data['status'] = status_message
+        # Perform anomaly detection
+        is_anomaly, status_message = detect_anomaly(data)
+        data['is_anomaly'] = is_anomaly
+        data['status'] = status_message
 
-    # Store the data point
-    current_data.append(data)
-    if len(current_data) > MAX_DATA_POINTS:
-        current_data.pop(0) # Keep only the latest N data points
+        # Store the data point
+        current_data.append(data)
+        if len(current_data) > MAX_DATA_POINTS:
+            current_data.pop(0) # Keep only the latest N data points
 
-    # If anomaly, add to anomalies list and increment counter
-    if is_anomaly:
-        anomalies.append(data)
-        ANOMALIES_DETECTED.inc()
-        ACTIVE_ANOMALIES.set(len(anomalies)) # Update gauge for active anomalies
-        print(f"ANOMALY DETECTED: {data}")
-    else:
-        # Decrement active anomalies if the latest point is normal and was previously an anomaly
-        # (Simplified: In a real system, you'd have a more sophisticated way to clear active anomalies)
-        if len(anomalies) > 0 and anomalies[-1]['timestamp'] == data['timestamp']: # Check if last anomaly was this point
-             anomalies.pop() # Remove it if it was immediately followed by a normal point
-        ACTIVE_ANOMALIES.set(len(anomalies)) # Update gauge
+        # If anomaly, add to anomalies list and increment counter
+        if is_anomaly:
+            anomalies.append(data)
+            ANOMALIES_DETECTED.inc()
+            print(f"ANOMALY DETECTED: {data}")
+        
+        # Update active anomalies gauge
+        ACTIVE_ANOMALIES.set(len(anomalies))
 
-    return jsonify({"status": "success", "message": "Data received and processed", "is_anomaly": is_anomaly})
+        return jsonify({"status": "success", "message": "Data received and processed", "is_anomaly": is_anomaly})
+
+    except Exception as e:
+        # Catch any other exception and return a 500 with a descriptive message
+        # This will help us find the root cause of the crash.
+        print(f"An unhandled exception occurred in /sensor_data: {e}")
+        return jsonify({"status": "error", "message": f"Internal Server Error: {e}"}), 500
 
 # --- Prometheus Metrics Endpoint ---
 # Expose Prometheus metrics at /metrics
